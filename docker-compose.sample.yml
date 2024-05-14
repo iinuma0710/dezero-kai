@@ -1,0 +1,14 @@
+services:
+  dezero-kai:
+    build: .
+    container_name: dezero-kai_container
+    shm_size: "20gb"
+    working_dir: /work
+    volumes:
+      - ./:/work
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [utility, compute, video]

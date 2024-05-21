@@ -2,6 +2,8 @@ import weakref
 import contextlib
 import numpy as np
 
+import dzrkai
+
 
 # =============================================================================
 # Config
@@ -67,6 +69,27 @@ class Variable():
     @property
     def dtype(self):
         return self.data.dtype
+    
+    def reshape(self, *shape):
+        if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
+            shape = shape[0]
+        return dzrkai.functions.reshape(self, shape)
+    
+    def transpose(self, *axes):
+        if len(axes) == 0:
+            axes = None
+        elif len(axes) == 1:
+            if isinstance(axes[0], (tuple, list)) or axes[0] is None:
+                axes = axes[0]
+
+        return dzrkai.functions.transpose(self, axes)
+    
+    @property
+    def T(self):
+        return dzrkai.functions.transpose(self)
+    
+    def sum(self, axis=None, keepdims=False):
+        return dzrkai.functions.sum(self, axis, keepdims)
 
     # creator 属性の setter
     def set_creator(self, func):
@@ -76,9 +99,9 @@ class Variable():
     def cleargrad(self):
         self.grad = None
 
-    def backward(self, retain_grad=False):
+    def backward(self, retain_grad=False, create_graph=False):
         if self.grad is None:
-            self.grad = np.ones_like(self.data)
+            self.grad = Variable(np.ones_like(self.data))
 
         funcs = []
         seen_set = set()
@@ -96,20 +119,22 @@ class Variable():
             f = funcs.pop()
             # 出力元の関数の全出力をリストにまとめる
             gys = [output().grad for output in f.outputs]
-            # 出力元の関数の逆伝播を実行
-            gxs = f.backward(*gys)
-            # 戻り値がタプルでない場合の処理
-            if not isinstance(gxs, tuple):
-                gxs = (gxs, )
 
-            for x, gx in zip(f.inputs, gxs):
-                if x.grad is None:
-                    x.grad = gx
-                else:
-                    x.grad = x.grad + gx
+            with using_config('enable_backprop', create_graph):
+                # 出力元の関数の逆伝播を実行
+                gxs = f.backward(*gys)
+                # 戻り値がタプルでない場合の処理
+                if not isinstance(gxs, tuple):
+                    gxs = (gxs, )
 
-                if x.creator is not None:
-                    add_func(x.creator)
+                for x, gx in zip(f.inputs, gxs):
+                    if x.grad is None:
+                        x.grad = gx
+                    else:
+                        x.grad = x.grad + gx
+
+                    if x.creator is not None:
+                        add_func(x.creator)
 
             # 微分を保持しない場合
             if not retain_grad:
@@ -169,40 +194,61 @@ class Neg(Function):
 
 class Add(Function):
     def forward(self, x0, x1):
+        self.x0_shape, self.x1_shape = x0.shape, x1.shape
         y = x0 + x1
         return y
     
     def backward(self, gy):
-        return gy, gy
+        gx0, gx1 = gy, gy
+        if self.x0_shape != self.x1_shape:
+            gx0 = dzrkai.functions.sum_to(gx0, self.x0_shape)
+            gx1 = dzrkai.functions.sum_to(gx1, self.x1_shape)
+        return gx0, gx1
 
 
 class Sub(Function):
     def forward(self, x0, x1):
+        self.x0_shape, self.x1_shape = x0.shape, x1.shape
         y = x0 - x1
         return y
     
     def backward(self, gy):
-        return gy, -gy
+        gx0 = gy
+        gx1 = -gy
+        if self.x0_shape != self.x1_shape:
+            gx0 = dzrkai.functions.sum_to(gx0, self.x0_shape)
+            gx1 = dzrkai.functions.sum_to(gx1, self.x1_shape)
+        return gx0, gx1
 
 
 class Mul(Function):
     def forward(self, x0, x1):
+        self.x0_shape, self.x1_shape = x0.shape, x1.shape
         y = x0 * x1
         return y
     
     def backward(self, gy):
-        x0, x1 = self.inputs[0].data, self.inputs[1].data
-        return gy * x1, gy * x0
+        x0, x1 = self.inputs
+        gx0 = gy * x1
+        gx1 = gy * x0
+        if self.x0_shape != self.x1_shape:
+            gx0 = dzrkai.functions.sum_to(gx0, self.x0_shape)
+            gx1 = dzrkai.functions.sum_to(gx1, self.x1_shape)
+        return gx0, gx1
 
 
 class Div(Function):
     def forward(self, x0, x1):
+        self.x0_shape, self.x1_shape = x0.shape, x1.shape
         return x0 / x1
     
     def backward(self, gy):
-        x0, x1 = self.inputs[0].data, self.inputs[1].data
+        x0, x1 = self.inputs
         gx0 = gy / x1
         gx1 = gy * (-x0 / x1 ** 2)
+        if self.x0_shape != self.x1_shape:
+            gx0 = dzrkai.functions.sum_to(gx0, self.x0_shape)
+            gx1 = dzrkai.functions.sum_to(gx1, self.x1_shape)
         return gx0, gx1
 
 
@@ -215,7 +261,7 @@ class Pow(Function):
         return y
     
     def backward(self, gy):
-        x = self.inputs[0].data
+        x = self.inputs[0]
         c = self.c
         gx = gy * c * x ** (c - 1)
         return gx

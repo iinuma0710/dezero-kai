@@ -5,7 +5,6 @@ if '__file__' in globals():
 
 import numpy as np
 from dzrkai import Variable
-import dzrkai.functions as F
 
 x0 = Variable(np.array([1, 2, 3]))
 x1 = Variable(np.array([10]))

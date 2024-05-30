@@ -142,6 +142,10 @@ class Variable():
                     y().grad = None # y は weakref
 
 
+class Parameter(Variable):
+    pass
+
+
 def as_array(x):
     if np.isscalar(x):
         return np.array(x)

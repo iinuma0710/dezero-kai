@@ -1,4 +1,5 @@
 from dzrkai.core import Variable
+from dzrkai.core import Parameter
 from dzrkai.core import Function
 from dzrkai.core import using_config
 from dzrkai.core import no_grad

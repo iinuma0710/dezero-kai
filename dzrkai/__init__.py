@@ -6,5 +6,7 @@ from dzrkai.core import no_grad
 from dzrkai.core import as_array
 from dzrkai.core import as_variable
 from dzrkai.core import setup_variable
+from dzrkai.layers import Layer
+from dzrkai.models import Model
 
 setup_variable()

@@ -3,6 +3,7 @@ import contextlib
 import numpy as np
 
 import dzrkai
+import dzrkai.functions
 
 
 # =============================================================================
@@ -320,3 +321,4 @@ def setup_variable():
     Variable.__truediv__ = div
     Variable.__rtruediv__ = rdiv
     Variable.__pow__ = pow
+    Variable.__getitem__ = dzrkai.functions.get_item

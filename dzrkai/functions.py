@@ -293,13 +293,13 @@ class Softmax(Function):
     def backward(self, gy):
         y = self.outputs[0]()
         gx = y * gy
-        sumdx =gx.sum(axis=self.axis, keepdims=True)
+        sumdx = gx.sum(axis=self.axis, keepdims=True)
         gx -= y * sumdx
         return gx
     
 
 def softmax(x, axis=1):
-    Softmax(axis)(x)
+    return Softmax(axis)(x)
 
 
 class SoftmaxCrossEntropy(Function):
@@ -318,7 +318,6 @@ class SoftmaxCrossEntropy(Function):
         gy *= 1 / N
         y = softmax(x)
         t_onehot = np.eye(CLS_NUM, dtype=t.dtype)[t.data]
-
         y = (y - t_onehot) * gy
         return y
 

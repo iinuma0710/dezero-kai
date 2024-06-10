@@ -9,4 +9,6 @@ from dzrkai.core import setup_variable
 from dzrkai.layers import Layer
 from dzrkai.models import Model
 
+import dzrkai.datasets
+
 setup_variable()

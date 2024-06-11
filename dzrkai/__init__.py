@@ -10,5 +10,6 @@ from dzrkai.layers import Layer
 from dzrkai.models import Model
 
 import dzrkai.datasets
+import dzrkai.dataloaders
 
 setup_variable()

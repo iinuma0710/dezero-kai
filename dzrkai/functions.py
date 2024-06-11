@@ -1,6 +1,6 @@
 import numpy as np
 from dzrkai import utils
-from dzrkai.core import Function, as_variable
+from dzrkai.core import Variable, Function, as_array, as_variable
 
 
 class Sin(Function):
@@ -324,3 +324,11 @@ class SoftmaxCrossEntropy(Function):
 
 def softmax_cross_entropy(x, t):
     return SoftmaxCrossEntropy()(x, t)
+
+
+def accuracy(y, t):
+    y, t = as_variable(y), as_variable(t)
+    pred = y.data.argmax(axis=1).reshape(t.shape)
+    result = (pred == t.data)
+    acc = result.mean()
+    return Variable(as_array(acc))

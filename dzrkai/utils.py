@@ -1,5 +1,7 @@
 import os
+import urllib
 import subprocess
+import urllib.request
 import numpy as np
 
 def _dot_var(v, verbose=False):
@@ -110,3 +112,44 @@ def logsumexp(x, axis=1):
     m += s
     return m
 
+
+def show_progress(block_num, block_size, total_size):
+    bar_template = "\r[{}] {:.2f}%"
+    downloaded = block_num * block_size
+    p = downloaded / total_size * 100
+    i = int(downloaded / total_size * 30)
+    if p >= 100.0: p = 100.0
+    if i >= 30: i = 30
+    bar = "#" * i + "." * (30 - i)
+    print(bar_template.format(bar, p), end='')
+
+
+def get_file(url, data_dir, file_name=None):
+    """
+    データをダウンロードして指定されたディレクトリに保存する
+    """
+    # ダウンロードしたファイルの保存先の設定
+    if file_name is None:
+        file_name = url[url.rfind('/') + 1:]
+    file_path = os.path.join(data_dir, file_name)
+
+    # すでにダウンロードされている場合はファイルパスを返して終了
+    if os.path.exists(file_path):
+        return file_path
+
+    # ダウンロード先のディレクトリがなければ作成
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+
+    # データのダウンロードを実行
+    print('Downloading: ' + file_name)
+    try:
+        urllib.request.urlretrieve(url, file_path, show_progress)
+    except (Exception, KeyboardInterrupt) as e:
+        if os.path.exists(file_path):
+            # ダウンロードの途中だったらファイルを削除
+            os.remove(file_path)
+        raise
+    print('Done')
+
+    return file_path

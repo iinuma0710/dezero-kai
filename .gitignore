@@ -1,3 +1,4 @@
 docker-compose.yml
 .ipynb_checkpoints
 **/__pycache__/**
+code

@@ -4,6 +4,8 @@ import dzrkai
 from dzrkai import cuda, utils
 from dzrkai.core import Variable, Function, as_array, as_variable
 
+from dzrkai.functions_conv import im2col, conv2d, deconv2d
+
 
 class Sin(Function):
     def forward(self, x):
